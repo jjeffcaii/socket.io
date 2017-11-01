@@ -1,28 +1,22 @@
 package sio
 
 import (
-	"encoding/json"
 	"net/http"
 )
 
+const DefaultPath = "/socket.io/"
+
 type Sockets map[string]Socket
-type Message []byte
-
-func (p Message) Parse(target interface{}) error {
-	return json.Unmarshal(p, target)
-}
-
-func (p Message) ToString() string {
-	return string(p)
-}
+type Message interface{}
 
 type Namespace interface {
+	ID() string
 	OnConnect(callback func(socket Socket))
 	GetSockets() Sockets
 }
 
 type Server interface {
-	Of(nsp string) (Namespace, error)
+	Of(nsp string) Namespace
 	Router() func(http.ResponseWriter, *http.Request)
 	GetSockets() Sockets
 	Close()
@@ -34,6 +28,6 @@ type Socket interface {
 	Emit(event string, any interface{}) error
 	On(event string, callback func(msg Message))
 	OnError(callback func(error))
-	OnClose(callback func())
+	OnClose(callback func(reason string))
 	Close()
 }

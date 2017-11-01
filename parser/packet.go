@@ -2,6 +2,7 @@ package parser
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -46,6 +47,44 @@ type Packet struct {
 	Type      PacketType
 	ID        uint32
 	Data      []byte
+}
+
+func (p *Packet) ToModel() (Model, error) {
+	switch p.Type {
+	default:
+		panic("todo")
+	case CONNECT:
+		mc := &MConnect{
+			Namespace: p.Namespace,
+		}
+		return mc, nil
+	case DISCONNECT:
+		md := &MDisconnect{
+			Namespace: p.Namespace,
+		}
+		return md, nil
+	case EVENT:
+		li := make([]interface{}, 0)
+		if err := json.Unmarshal(p.Data, &li); err != nil {
+			return nil, err
+		}
+		me := &MEvent{
+			ID:        p.ID,
+			Namespace: p.Namespace,
+		}
+		if evt, ok := li[0].(string); !ok {
+			return nil, errors.New("parse event name failed")
+		} else {
+			me.Event = evt
+		}
+		return me, nil
+	case ACK:
+		ma := &MAck{
+			Namespace: p.Namespace,
+			ID:        p.ID,
+		}
+		return ma, nil
+	}
 }
 
 func NewPacket(packetType PacketType, nsp string, id uint32, data []byte) *Packet {

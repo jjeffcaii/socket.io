@@ -1,12 +1,17 @@
 package sio
 
+import (
+	"github.com/jjeffcaii/engine.io"
+)
+
 type ServerBuilder struct {
 }
 
 func (p *ServerBuilder) Build() Server {
-	panic("todo")
+	eng := eio.NewEngineBuilder().SetPath(DefaultPath).Build()
+	return newServer(eng)
 }
 
 func NewBuilder() *ServerBuilder {
-	panic("todo")
+	return new(ServerBuilder)
 }

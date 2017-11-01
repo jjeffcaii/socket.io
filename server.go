@@ -13,22 +13,23 @@ type serverOptions struct {
 
 type implServer struct {
 	engine     eio.Engine
-	namespaces map[string]Namespace
+	namespaces map[string]*implNamespace
 	locker     *sync.RWMutex
 }
 
-func (p *implServer) Of(nsp string) (Namespace, error) {
+func (p *implServer) Of(nsp string) Namespace {
 	if !isValidNamespace(nsp) {
-		return nil, fmt.Errorf("invalid namespace: %s", nsp)
+		panic(fmt.Errorf("invalid namespace: %s", nsp))
 	}
 	p.locker.Lock()
 	defer p.locker.Unlock()
-	if _, ok := p.namespaces[nsp]; ok {
-		return nil, fmt.Errorf("namespace %s exists already", nsp)
+	if exist, ok := p.namespaces[nsp]; ok {
+		return exist
+	} else {
+		foo := newNamespace(p, nsp)
+		p.namespaces[nsp] = foo
+		return foo
 	}
-	n := newNamespace(p, nsp)
-	p.namespaces[nsp] = n
-	return n, nil
 }
 
 func (p *implServer) Router() func(http.ResponseWriter, *http.Request) {
@@ -36,25 +37,44 @@ func (p *implServer) Router() func(http.ResponseWriter, *http.Request) {
 }
 
 func (p *implServer) GetSockets() Sockets {
-	panic("implement me")
+	ret := make(map[string]Socket)
+	nsps := make([]*implNamespace, 0)
+	p.locker.RLock()
+	for _, nsp := range p.namespaces {
+		nsps = append(nsps, nsp)
+	}
+	p.locker.RUnlock()
+	for _, nsp := range nsps {
+		for k, v := range nsp.GetSockets() {
+			ret[k] = v
+		}
+	}
+	return ret
 }
 
 func (p *implServer) Close() {
 	panic("implement me")
 }
 
+func (p *implServer) loadNamespace(nsp string) (*implNamespace, bool) {
+	p.locker.RLock()
+	defer p.locker.RUnlock()
+	if nsp == "" {
+		n, ok := p.namespaces["/"]
+		return n, ok
+	}
+	n, ok := p.namespaces[nsp]
+	return n, ok
+}
+
 func newServer(engine eio.Engine) *implServer {
-	s := implServer{
+	serv := &implServer{
 		engine:     engine,
-		namespaces: make(map[string]Namespace),
+		namespaces: make(map[string]*implNamespace),
 		locker:     new(sync.RWMutex),
 	}
-	engine.OnConnect(func(socket eio.Socket) {
-		socket.OnMessage(func(data []byte) {
-
-
-
-		})
+	engine.OnConnect(func(rawSocket eio.Socket) {
+		newSocket(serv, rawSocket)
 	})
-	return &s
+	return serv
 }

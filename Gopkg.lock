@@ -16,12 +16,12 @@
 [[projects]]
   name = "github.com/jjeffcaii/engine.io"
   packages = [".","parser"]
-  revision = "e214e48fb6161847ac03f0f1912c6ae9d8a41f88"
-  version = "v0.1.0"
+  revision = "f0f7b11c470634c4615510866754f327473799c5"
+  version = "v0.2.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "eb4cca9d3e553ec60dd3134f62e7b579f94907ab5000a74d960581f3bcb9e14a"
+  inputs-digest = "69fbb8071bdec3d16801afaa0cdc7f0a1f1d8382f33b51838d582d2cf07006a9"
   solver-name = "gps-cdcl"
   solver-version = 1
