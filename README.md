@@ -1,5 +1,5 @@
 # Socket.IO (WARNING: STILL WORKING!!!!)
-Unofficial server-side Socket.IO in Golang.
+Unofficial server-side [Socket.IO](https://socket.io) in Golang.
 
 ## Example
 
