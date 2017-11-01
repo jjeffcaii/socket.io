@@ -19,12 +19,13 @@ func (p Message) ToString() string {
 type Namespace interface {
 	OnConnect(callback func(socket Socket))
 	GetSockets() Sockets
-	Router() func(http.ResponseWriter, *http.Request)
 }
 
 type Server interface {
 	Of(nsp string) (Namespace, error)
+	Router() func(http.ResponseWriter, *http.Request)
 	GetSockets() Sockets
+	Close()
 }
 
 type Socket interface {
@@ -34,4 +35,5 @@ type Socket interface {
 	On(event string, callback func(msg Message))
 	OnError(callback func(error))
 	OnClose(callback func())
+	Close()
 }

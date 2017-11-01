@@ -12,9 +12,8 @@ func init() {
 }
 
 func TestAPI(t *testing.T) {
-	var server Server
+	server := NewBuilder().Build()
 	nsp, _ := server.Of("/chat")
-
 	nsp.OnConnect(func(socket Socket) {
 		socket.On("friend", func(msg Message) {
 			log.Println("rcv from friend:", msg.ToString())
@@ -22,6 +21,6 @@ func TestAPI(t *testing.T) {
 		socket.Emit("friend", "Hello World!")
 	})
 
-	http.HandleFunc("/socket.io", nsp.Router())
+	http.HandleFunc("/socket.io", server.Router())
 	log.Fatalln(http.ListenAndServe(":3000", nil))
 }
