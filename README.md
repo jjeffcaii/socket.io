@@ -1,4 +1,7 @@
 # Socket.IO (WARNING: STILL WORKING!!!!)
+
+[![Build Status](https://travis-ci.org/jjeffcaii/socket.io.svg?branch=master)](https://travis-ci.org/jjeffcaii/socket.io)
+
 Unofficial server-side [Socket.IO](https://socket.io) in Golang.
 
 ## Example
