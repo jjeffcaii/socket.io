@@ -22,7 +22,7 @@
 
 // Package sio is a server-side Socket.IO in Golang.
 // Basic Example - Echo Server: recieve messages and echo them back.
-
+//
 // flag.Parse()
 // server := sio.NewBuilder().Build()
 // nsp := server.Of("/")
@@ -34,7 +34,6 @@
 // })
 // http.HandleFunc(sio.DefaultPath, server.Router())
 // log.Fatalln(http.ListenAndServe(":3000", nil))
-
 package sio
 
 import (
