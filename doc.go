@@ -1,5 +1,6 @@
 // Package sio is a server-side Socket.IO in Golang.
-// Basic Example - Echo Server: recieve messages and echo them back.
+//
+// Basic Example:
 //
 //	flag.Parse()
 //	var server = sio.NewBuilder().Build()
