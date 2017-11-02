@@ -3,9 +3,9 @@
 //
 // flag.Parse()
 //
-// server := sio.NewBuilder().Build()
+// var server = sio.NewBuilder().Build()
 //
-// nsp := server.Of("/")
+// var nsp = server.Of("/")
 //
 // nsp.OnConnect(func(socket sio.Socket) {
 //   socket.On("news", func(msg sio.Message) {
