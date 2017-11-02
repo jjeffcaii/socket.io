@@ -25,11 +25,10 @@ func (p *implServer) Of(nsp string) Namespace {
 	defer p.locker.Unlock()
 	if exist, ok := p.namespaces[nsp]; ok {
 		return exist
-	} else {
-		foo := newNamespace(p, nsp)
-		p.namespaces[nsp] = foo
-		return foo
 	}
+	foo := newNamespace(p, nsp)
+	p.namespaces[nsp] = foo
+	return foo
 }
 
 func (p *implServer) Router() func(http.ResponseWriter, *http.Request) {

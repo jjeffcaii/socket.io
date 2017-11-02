@@ -92,7 +92,6 @@ func newSocket(server *implServer, rawSocket eio.Socket) *implSocket {
 			socket.nsp = nil
 		}
 	})
-
 	rawSocket.OnMessage(func(data []byte) {
 		packet, err := parser.Decode(data)
 		if err != nil {

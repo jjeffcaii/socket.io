@@ -1,14 +1,11 @@
 package example
 
 import (
-	"testing"
-
+	"flag"
 	"fmt"
-
 	"log"
 	"net/http"
-
-	"flag"
+	"testing"
 
 	"github.com/jjeffcaii/socket.io"
 )
@@ -24,8 +21,11 @@ func TestEcho(t *testing.T) {
 	nsp := server.Of("/")
 	nsp.OnConnect(func(socket sio.Socket) {
 		socket.On("test", func(msg sio.Message) {
-			fmt.Printf("[test] <= %+v", msg)
+			fmt.Printf("[test] <= %v\n", msg)
 			socket.Emit("test", "你好，客户端！")
+		})
+		socket.OnClose(func(reason string) {
+			fmt.Println("socket", socket.ID(), "closed")
 		})
 	})
 	http.HandleFunc(sio.DefaultPath, server.Router())
