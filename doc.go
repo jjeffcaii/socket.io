@@ -15,6 +15,7 @@
 // })
 //
 // http.HandleFunc(sio.DefaultPath, server.Router())
+//
 // log.Fatalln(http.ListenAndServe(":3000", nil))
 //
 package sio
