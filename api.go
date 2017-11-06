@@ -19,12 +19,11 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-
-
 package sio
 
 import (
 	"net/http"
+	"net/url"
 )
 
 // DefaultPath '/socket.io/' is the default http handler path.
@@ -32,6 +31,7 @@ const DefaultPath = "/socket.io/"
 
 // Sockets is an alias of socket map.
 type Sockets map[string]Socket
+
 // Message is an alias of event message.
 type Message interface{}
 
@@ -54,8 +54,14 @@ type Server interface {
 	Router() func(http.ResponseWriter, *http.Request)
 	// GetSockets returns all sockets of server.
 	GetSockets() Sockets
-	// Close current server.
-	Close()
+}
+
+type ToRoom interface {
+	Emit(event string, first interface{}, others ...interface{}) error
+}
+
+type InRoom interface {
+	On(event string, callback func(msg Message)) error
 }
 
 // Socket is the fundamental class for interacting with browser clients.
@@ -65,14 +71,33 @@ type Socket interface {
 	ID() string
 	// Namespace returns Namespace of current socket.
 	Namespace() Namespace
+	// Handshake returns Handshake of current socket.
+	Handshake() *Handshake
 	// Emit emits an event to the socket identified by the string name.
-	Emit(event string, any interface{}) error
+	Emit(event string, first interface{}, others ...interface{}) error
 	// On register a handler of event identified by the string event.
-	On(event string, callback func(msg Message))
+	On(event string, callback func(msg Message)) error
 	// OnError register a handler of error happend.
-	OnError(callback func(error))
+	OnError(callback func(error)) error
 	// OnClose register a handler of socket closed.
-	OnClose(callback func(reason string))
+	OnClose(callback func(reason string)) error
 	// Close close current socket.
 	Close()
+
+	// To return ToRoom identified by the room string.
+	To(room string) ToRoom
+	// In return InRoom identified by the room string.
+	In(room string) InRoom
+	Join(room string) error
+	Leave(room string) error
+	LeaveAll() error
+}
+
+// Handshake is the object used when negociating the handshake.
+type Handshake struct {
+	Headers http.Header
+	Address string
+	XDomain bool
+	URL     string
+	Query   url.Values
 }

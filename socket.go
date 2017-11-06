@@ -1,7 +1,29 @@
+// MIT License
+//
+// Copyright (c) 2017 jjeffcaii@outlook.com
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 package sio
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/golang/glog"
 	"github.com/jjeffcaii/engine.io"
@@ -10,21 +32,71 @@ import (
 
 var initData = "0"
 
+type eventHandlers map[string][]func(Message)
+
+func (s eventHandlers) register(event string, handler func(Message)) error {
+	if exists, ok := s[event]; ok {
+		s[event] = append(exists, handler)
+	} else {
+		s[event] = []func(Message){handler}
+	}
+	return nil
+}
+
+func (s eventHandlers) exec(event string, msg Message) {
+	handlers, ok := s[event]
+	if !ok {
+		return
+	}
+	for _, fn := range handlers {
+		fn(msg)
+	}
+}
+
 type implSocket struct {
 	nsp           *implNamespace
-	rawSocket     eio.Socket
-	eventHandlers map[string][]func(Message)
+	conn          eio.Socket
+	eventHandlers eventHandlers
+	handshake     *Handshake
+}
+
+func (p *implSocket) To(room string) ToRoom {
+	panic("implement me")
+}
+
+func (p *implSocket) In(room string) InRoom {
+	panic("implement me")
+}
+
+func (p *implSocket) Join(room string) error {
+	panic("implement me")
+}
+
+func (p *implSocket) Leave(room string) error {
+	panic("implement me")
+}
+
+func (p *implSocket) LeaveAll() error {
+	panic("implement me")
+}
+
+func (p *implSocket) Handshake() *Handshake {
+	return p.handshake
 }
 
 func (p *implSocket) Namespace() Namespace {
 	return p.nsp
 }
 
-func (p *implSocket) Emit(event string, any interface{}) error {
+func (p *implSocket) Emit(event string, first interface{}, others ...interface{}) error {
+	body := []interface{}{first}
+	if len(others) > 0 {
+		body = append(body, others...)
+	}
 	evt := &parser.MEvent{
 		Namespace: p.nsp.name,
 		Event:     event,
-		Data:      any,
+		Data:      body,
 	}
 	packet, err := evt.ToPacket()
 	if err != nil {
@@ -39,35 +111,31 @@ func (p *implSocket) Emit(event string, any interface{}) error {
 	default:
 		return fmt.Errorf("unsupport emit packet type: %d", packet.Type)
 	case parser.EVENT:
-		return p.rawSocket.Send(string(bs))
+		return p.conn.Send(string(bs))
 	case parser.EVENTBIN:
-		return p.rawSocket.Send(bs)
+		return p.conn.Send(bs)
 	}
 }
 
-func (p *implSocket) On(event string, callback func(msg Message)) {
-	if v, ok := p.eventHandlers[event]; ok {
-		vv := append(v, callback)
-		p.eventHandlers[event] = vv
-	} else {
-		p.eventHandlers[event] = []func(Message){callback}
-	}
+func (p *implSocket) On(event string, callback func(msg Message)) error {
+	return p.eventHandlers.register(event, callback)
 }
 
-func (p *implSocket) OnError(callback func(error)) {
+func (p *implSocket) OnError(callback func(error)) error {
 	panic("implement me")
 }
 
-func (p *implSocket) OnClose(callback func(reason string)) {
-	p.rawSocket.OnClose(callback)
+func (p *implSocket) OnClose(callback func(reason string)) error {
+	p.conn.OnClose(callback)
+	return nil
 }
 
 func (p *implSocket) Close() {
-	p.rawSocket.Close()
+	p.conn.Close()
 }
 
 func (p *implSocket) ID() string {
-	return p.rawSocket.ID()
+	return p.conn.ID()
 }
 
 func (p *implSocket) accept(evt *parser.MEvent) {
@@ -76,50 +144,63 @@ func (p *implSocket) accept(evt *parser.MEvent) {
 		glog.Warningln("no such event which name is", evt.Event)
 		return
 	}
-	for _, fn := range handlers {
-		fn(evt.Data)
+	for _, it := range evt.Data {
+		for _, fn := range handlers {
+			fn(it)
+		}
 	}
 }
 
-func newSocket(server *implServer, rawSocket eio.Socket) *implSocket {
-	socket := &implSocket{
-		eventHandlers: make(map[string][]func(Message)),
-		rawSocket:     rawSocket,
+func newHandshake(req *http.Request) *Handshake {
+	handshake := Handshake{
+		Headers: req.Header,
+		Query:   req.URL.Query(),
+		URL:     req.URL.Path,
+		Address: req.RemoteAddr,
 	}
-	rawSocket.OnClose(func(_ string) {
+	return &handshake
+}
+
+func newSocket(server *implServer, conn eio.Socket) *implSocket {
+	socket := &implSocket{
+		eventHandlers: make(eventHandlers),
+		conn:          conn,
+		handshake:     newHandshake(conn.Transport().GetRequest()),
+	}
+	conn.OnClose(func(_ string) {
 		if socket.nsp != nil {
 			socket.nsp.leaveSocket(socket)
 			socket.nsp = nil
 		}
 	})
-	rawSocket.OnMessage(func(data []byte) {
+	conn.OnMessage(func(data []byte) {
 		packet, err := parser.Decode(data)
 		if err != nil {
-			rawSocket.Close()
+			conn.Close()
 			return
 		}
 		switch packet.Type {
 		case parser.CONNECT:
 			nsp, ok := server.loadNamespace(packet.Namespace)
 			if !ok {
-				rawSocket.Close()
+				conn.Close()
 				glog.Errorf("no such namespace %s", packet.Namespace)
 				return
 			}
 			socket.nsp = nsp
 			nsp.joinSocket(socket)
-			if err := rawSocket.Send(data); err != nil {
-				rawSocket.Close()
+			if err := conn.Send(data); err != nil {
+				conn.Close()
 				glog.Errorln("send connect response failed:", err)
 			}
 			break
 		case parser.DISCONNECT:
-			rawSocket.Close()
+			conn.Close()
 			break
 		case parser.EVENT:
 			// handle income event.
 			if model, err := packet.ToModel(); err != nil {
-				rawSocket.Close()
+				conn.Close()
 				glog.Errorln(err)
 			} else {
 				socket.accept(model.(*parser.MEvent))
@@ -129,10 +210,11 @@ func newSocket(server *implServer, rawSocket eio.Socket) *implSocket {
 			break
 		}
 	})
-	socket.nsp = server.Of("/").(*implNamespace)
+	// add into default namespace.
+	socket.nsp = server.Of(defaultNamespace).(*implNamespace)
 	socket.nsp.joinSocket(socket)
-	if err := rawSocket.Send(initData); err != nil {
-		rawSocket.Close()
+	if err := conn.Send(initData); err != nil {
+		conn.Close()
 	}
 	return socket
 }

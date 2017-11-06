@@ -1,3 +1,24 @@
+// MIT License
+//
+// Copyright (c) 2017 jjeffcaii@outlook.com
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 package parser
 
 import (
@@ -64,19 +85,20 @@ func (p *Packet) ToModel() (Model, error) {
 		}
 		return md, nil
 	case EVENT:
-		li := make([]interface{}, 0)
-		if err := json.Unmarshal(p.Data, &li); err != nil {
+		events := make([]interface{}, 0)
+		if err := json.Unmarshal(p.Data, &events); err != nil {
 			return nil, err
 		}
 		me := &MEvent{
 			ID:        p.ID,
 			Namespace: p.Namespace,
 		}
-		if evt, ok := li[0].(string); !ok {
+		if evt, ok := events[0].(string); !ok {
 			return nil, errors.New("parse event name failed")
 		} else {
 			me.Event = evt
 		}
+		me.Data = events[1:]
 		return me, nil
 	case ACK:
 		ma := &MAck{

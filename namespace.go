@@ -1,3 +1,24 @@
+// MIT License
+//
+// Copyright (c) 2017 jjeffcaii@outlook.com
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 package sio
 
 import (
@@ -13,8 +34,9 @@ const defaultNamespace = "/"
 type implNamespace struct {
 	server       Server
 	name         string
-	sockets      *sync.Map
 	connHandlers []func(Socket)
+	sockets      map[string]*implSocket
+	locker       *sync.RWMutex
 }
 
 func (p *implNamespace) ID() string {
@@ -27,29 +49,33 @@ func (p *implNamespace) OnConnect(callback func(socket Socket)) {
 
 func (p *implNamespace) GetSockets() Sockets {
 	ret := make(Sockets)
-	p.sockets.Range(func(key, value interface{}) bool {
-		k := key.(string)
-		v := value.(Socket)
+	p.locker.RLock()
+	for k, v := range p.sockets {
 		ret[k] = v
-		return false
-	})
+	}
+	p.locker.RUnlock()
 	return ret
 }
 
 func (p *implNamespace) leaveSocket(socket *implSocket) error {
-	p.sockets.Delete(socket.ID())
+	p.locker.Lock()
+	defer p.locker.Unlock()
+	delete(p.sockets, socket.ID())
 	return nil
 }
 
 func (p *implNamespace) joinSocket(socket *implSocket) error {
 	sid := socket.ID()
-	if exist, loaded := p.sockets.LoadOrStore(sid, socket); loaded {
-		if exist == socket {
-			return nil
-		}
+	p.locker.Lock()
+	exist, ok := p.sockets[sid]
+	p.locker.Unlock()
+	if !ok {
+		p.sockets[sid] = socket
+	} else if exist == socket {
+		return nil
+	} else {
 		return fmt.Errorf("socket %s exists already", sid)
 	}
-
 	c := len(p.connHandlers)
 	if c < 1 {
 		return nil
@@ -81,8 +107,9 @@ func newNamespace(server Server, name string) *implNamespace {
 	nsp := implNamespace{
 		server:       server,
 		name:         name,
-		sockets:      new(sync.Map),
+		sockets:      make(map[string]*implSocket),
 		connHandlers: make([]func(Socket), 0),
+		locker:       new(sync.RWMutex),
 	}
 	return &nsp
 }
