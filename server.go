@@ -89,12 +89,15 @@ func (p *implServer) loadNamespace(nsp string) (*implNamespace, bool) {
 	return n, ok
 }
 
-func newServer(engine eio.Engine) *implServer {
+func newServer(engine eio.Engine, l1 *log.Logger, l2 *log.Logger, l3 *log.Logger) *implServer {
 	serv := &implServer{
 		engine:     engine,
 		namespaces: make(map[string]*implNamespace),
 		locker:     new(sync.RWMutex),
 		logger: &loggerGroup{
+			info: l1,
+			warn: l2,
+			err:  l3,
 		},
 	}
 	engine.OnConnect(func(rawSocket eio.Socket) {
