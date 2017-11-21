@@ -26,13 +26,19 @@ import (
 	"net/http"
 	"sync"
 
+	"log"
+
 	"github.com/jjeffcaii/engine.io"
 )
 
-type serverOptions struct {
+type loggerGroup struct {
+	info *log.Logger
+	warn *log.Logger
+	err  *log.Logger
 }
 
 type implServer struct {
+	logger     *loggerGroup
 	engine     eio.Engine
 	namespaces map[string]*implNamespace
 	locker     *sync.RWMutex
@@ -88,6 +94,8 @@ func newServer(engine eio.Engine) *implServer {
 		engine:     engine,
 		namespaces: make(map[string]*implNamespace),
 		locker:     new(sync.RWMutex),
+		logger: &loggerGroup{
+		},
 	}
 	engine.OnConnect(func(rawSocket eio.Socket) {
 		newSocket(serv, rawSocket)

@@ -22,17 +22,14 @@
 package sio
 
 import (
-	"sync"
-
 	"fmt"
-
-	"github.com/golang/glog"
+	"sync"
 )
 
 const defaultNamespace = "/"
 
 type implNamespace struct {
-	server       Server
+	server       *implServer
 	name         string
 	connHandlers []func(Socket)
 	sockets      map[string]*implSocket
@@ -92,7 +89,9 @@ func (p *implNamespace) joinSocket(socket *implSocket) error {
 		go func() {
 			defer func() {
 				if e := recover(); e != nil {
-					glog.Errorln("handle socket create failed:", e)
+					if p.server.logger.err != nil {
+						p.server.logger.err.Println("handle socket create failed:", e)
+					}
 				}
 				wg.Done()
 			}()
@@ -103,7 +102,7 @@ func (p *implNamespace) joinSocket(socket *implSocket) error {
 	return nil
 }
 
-func newNamespace(server Server, name string) *implNamespace {
+func newNamespace(server *implServer, name string) *implNamespace {
 	nsp := implNamespace{
 		server:       server,
 		name:         name,

@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/golang/glog"
 	"github.com/jjeffcaii/engine.io"
 	"github.com/jjeffcaii/socket.io/parser"
 )
@@ -141,7 +140,9 @@ func (p *implSocket) ID() string {
 func (p *implSocket) accept(evt *parser.MEvent) {
 	handlers, ok := p.eventHandlers[evt.Event]
 	if !ok {
-		glog.Warningln("no such event which name is", evt.Event)
+		if p.nsp.server.logger.warn != nil {
+			p.nsp.server.logger.warn.Println("no such event which name is", evt.Event)
+		}
 		return
 	}
 	for _, it := range evt.Data {
@@ -184,14 +185,18 @@ func newSocket(server *implServer, conn eio.Socket) *implSocket {
 			nsp, ok := server.loadNamespace(packet.Namespace)
 			if !ok {
 				conn.Close()
-				glog.Errorf("no such namespace %s", packet.Namespace)
+				if server.logger.err != nil {
+					server.logger.err.Printf("no such namespace %s\n", packet.Namespace)
+				}
 				return
 			}
 			socket.nsp = nsp
 			nsp.joinSocket(socket)
 			if err := conn.Send(data); err != nil {
 				conn.Close()
-				glog.Errorln("send connect response failed:", err)
+				if server.logger.err != nil {
+					server.logger.err.Println("send connect response failed:", err)
+				}
 			}
 			break
 		case parser.DISCONNECT:
@@ -201,7 +206,9 @@ func newSocket(server *implServer, conn eio.Socket) *implSocket {
 			// handle income event.
 			if model, err := packet.ToModel(); err != nil {
 				conn.Close()
-				glog.Errorln(err)
+				if server.logger.err != nil {
+					server.logger.err.Println(err)
+				}
 			} else {
 				socket.accept(model.(*parser.MEvent))
 			}
