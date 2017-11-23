@@ -1,6 +1,6 @@
 [[constraint]]
   name = "github.com/jjeffcaii/engine.io"
-  version = "0.5.0"
+  version = "0.6.0"
 
 [[constraint]]
   name = "github.com/antonholmquist/jason"
