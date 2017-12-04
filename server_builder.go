@@ -41,6 +41,12 @@ func (p *ServerBuilder) Build() Server {
 	return newServer(p.engineBuilder.Build(), p.linfo, p.lwarn, p.lerr)
 }
 
+// ForceCheckProtocol force protocol check for query param EIO.
+func (p *ServerBuilder) ForceCheckProtocol() *ServerBuilder{
+	p.engineBuilder.ForceCheckProtocol()
+	return p
+}
+
 // SetLoggerInfo set logger for INFO
 func (p *ServerBuilder) SetLoggerInfo(logger *log.Logger) *ServerBuilder {
 	p.engineBuilder.SetLoggerInfo(logger)
