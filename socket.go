@@ -88,6 +88,9 @@ func (p *implSocket) Namespace() Namespace {
 }
 
 func (p *implSocket) Emit(event string, first interface{}, others ...interface{}) error {
+	if p.nsp == nil {
+		return fmt.Errorf("socket is closing")
+	}
 	body := []interface{}{first}
 	if len(others) > 0 {
 		body = append(body, others...)
