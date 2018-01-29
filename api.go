@@ -43,6 +43,7 @@ type Namespace interface {
 	OnConnect(callback func(socket Socket))
 	// GetSockets returns all of sockets in current namespace.
 	GetSockets() Sockets
+	To(room string) Emitter
 }
 
 // Server is socket.io server.
@@ -56,7 +57,7 @@ type Server interface {
 	GetSockets() Sockets
 }
 
-type ToRoom interface {
+type Emitter interface {
 	Emit(event string, first interface{}, others ...interface{}) error
 }
 
@@ -73,6 +74,7 @@ type Socket interface {
 	Namespace() Namespace
 	// Handshake returns Handshake of current socket.
 	Handshake() *Handshake
+	Boardcast()
 	// Emit emits an event to the socket identified by the string name.
 	Emit(event string, first interface{}, others ...interface{}) error
 	// On register a handler of event identified by the string event.
@@ -83,13 +85,15 @@ type Socket interface {
 	OnClose(callback func(reason string)) error
 	// Close close current socket.
 	Close()
-
 	// To return ToRoom identified by the room string.
-	To(room string) ToRoom
+	To(room string) Emitter
 	// In return InRoom identified by the room string.
-	In(room string) InRoom
-	Join(room string) error
-	Leave(room string) error
+	In(room string) Emitter
+	// Join joins a room.
+	Join(room string) Socket
+	// Leave leaves a room.
+	Leave(room string) Socket
+	// Leave leaves all the rooms that we've joined.
 	LeaveAll() error
 }
 

@@ -22,6 +22,7 @@
 package sio
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 )
@@ -32,8 +33,8 @@ type implNamespace struct {
 	server       *implServer
 	name         string
 	connHandlers []func(Socket)
-	sockets      map[string]*implSocket
-	locker       *sync.RWMutex
+	sockets      *sync.Map // key=sid,value=socket
+	rooms        *sync.Map // key=room_name,value=implRoom
 }
 
 func (p *implNamespace) ID() string {
@@ -46,59 +47,58 @@ func (p *implNamespace) OnConnect(callback func(socket Socket)) {
 
 func (p *implNamespace) GetSockets() Sockets {
 	ret := make(Sockets)
-	p.locker.RLock()
-	for k, v := range p.sockets {
-		ret[k] = v
-	}
-	p.locker.RUnlock()
+	p.sockets.Range(func(key, value interface{}) bool {
+		ret[key.(string)] = value.(Socket)
+		return true
+	})
 	return ret
 }
 
-func (p *implNamespace) leaveSocket(socket *implSocket) error {
-	p.locker.Lock()
-	defer p.locker.Unlock()
-	delete(p.sockets, socket.ID())
+func (p *implNamespace) ensureRoom(roomName string) *implRoom {
+	var room *implRoom
+	if found, ok := p.rooms.Load(roomName); !ok {
+		room = newRoom(p, roomName)
+		p.rooms.Store(roomName, room)
+	} else {
+		room = found.(*implRoom)
+	}
+	return room
+}
+
+func (p *implNamespace) appendSocket(socket *implSocket) error {
+	p.sockets.Delete(socket.ID())
 	return nil
 }
 
-func (p *implNamespace) joinSocket(socket *implSocket) error {
+func (p *implNamespace) removeSocket(socket *implSocket) (err error) {
+	defer func() {
+		e := recover()
+		if e == nil {
+			return
+		}
+		if p.server.logger.err != nil {
+			p.server.logger.err("handle socket create failed: %s\n", e)
+		}
+		switch e.(type) {
+		case error:
+			err = e.(error)
+			break
+		case string:
+			err = errors.New(e.(string))
+			break
+		}
+	}()
 	sid := socket.ID()
-	p.locker.Lock()
-	exist, ok := p.sockets[sid]
-	p.locker.Unlock()
-	if !ok {
-		p.sockets[sid] = socket
-	} else if exist == socket {
-		return nil
-	} else {
+	exist, loaded := p.sockets.LoadOrStore(sid, socket)
+	if loaded {
+		if exist == socket {
+			return nil
+		}
 		return fmt.Errorf("socket %s exists already", sid)
 	}
-	c := len(p.connHandlers)
-	if c < 1 {
-		return nil
-	}
-
-	if c == 1 {
-		p.connHandlers[0](socket)
-		return nil
-	}
-
-	wg := new(sync.WaitGroup)
-	wg.Add(len(p.connHandlers))
 	for _, fn := range p.connHandlers {
-		go func() {
-			defer func() {
-				if e := recover(); e != nil {
-					if p.server.logger.err != nil {
-						p.server.logger.err("handle socket create failed: %s\n", e)
-					}
-				}
-				wg.Done()
-			}()
-			fn(socket)
-		}()
+		fn(socket)
 	}
-	wg.Wait()
 	return nil
 }
 
@@ -106,9 +106,9 @@ func newNamespace(server *implServer, name string) *implNamespace {
 	nsp := implNamespace{
 		server:       server,
 		name:         name,
-		sockets:      make(map[string]*implSocket),
+		sockets:      new(sync.Map),
+		rooms:        new(sync.Map),
 		connHandlers: make([]func(Socket), 0),
-		locker:       new(sync.RWMutex),
 	}
 	return &nsp
 }

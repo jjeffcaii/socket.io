@@ -28,6 +28,10 @@ func TestEcho(t *testing.T) {
 		socket.OnClose(func(reason string) {
 			fmt.Println("socket", socket.ID(), "closed")
 		})
+		socket.Join("party")
+		socket.In("party").On("bb", func(msg sio.Message) {
+		})
+
 	})
 	http.HandleFunc(sio.DefaultPath, server.Router())
 	log.Fatalln(http.ListenAndServe(":3000", nil))

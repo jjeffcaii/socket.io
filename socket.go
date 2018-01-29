@@ -67,12 +67,14 @@ func (p *implSocket) In(room string) InRoom {
 	panic("implement me")
 }
 
-func (p *implSocket) Join(room string) error {
-	panic("implement me")
+func (p *implSocket) Join(room string) Socket {
+	p.nsp.ensureRoom(room).join(p)
+	return p
 }
 
-func (p *implSocket) Leave(room string) error {
-	panic("implement me")
+func (p *implSocket) Leave(room string) Socket {
+	p.nsp.ensureRoom(room).leave(p)
+	return p
 }
 
 func (p *implSocket) LeaveAll() error {
@@ -104,8 +106,7 @@ func (p *implSocket) Emit(event string, first interface{}, others ...interface{}
 	if err != nil {
 		return err
 	}
-	var bs []byte
-	bs, err = parser.Encode(packet)
+	bs, err := parser.Encode(packet)
 	if err != nil {
 		return err
 	}
@@ -172,7 +173,7 @@ func newSocket(server *implServer, conn eio.Socket) *implSocket {
 	}
 	conn.OnClose(func(_ string) {
 		if socket.nsp != nil {
-			socket.nsp.leaveSocket(socket)
+			socket.nsp.appendSocket(socket)
 			socket.nsp = nil
 		}
 	})
@@ -193,7 +194,7 @@ func newSocket(server *implServer, conn eio.Socket) *implSocket {
 				return
 			}
 			socket.nsp = nsp
-			nsp.joinSocket(socket)
+			nsp.removeSocket(socket)
 			if err := conn.Send(data); err != nil {
 				conn.Close()
 				if server.logger.err != nil {
@@ -221,7 +222,7 @@ func newSocket(server *implServer, conn eio.Socket) *implSocket {
 	})
 	// add into default namespace.
 	socket.nsp = server.Of(defaultNamespace).(*implNamespace)
-	socket.nsp.joinSocket(socket)
+	socket.nsp.removeSocket(socket)
 	if err := conn.Send(initData); err != nil {
 		conn.Close()
 	}
