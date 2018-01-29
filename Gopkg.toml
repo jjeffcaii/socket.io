@@ -1,6 +1,6 @@
 [[constraint]]
   name = "github.com/jjeffcaii/engine.io"
-  version = "0.7.0"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/antonholmquist/jason"

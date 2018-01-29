@@ -90,7 +90,7 @@ func (p *implNamespace) joinSocket(socket *implSocket) error {
 			defer func() {
 				if e := recover(); e != nil {
 					if p.server.logger.err != nil {
-						p.server.logger.err.Println("handle socket create failed:", e)
+						p.server.logger.err("handle socket create failed: %s\n", e)
 					}
 				}
 				wg.Done()

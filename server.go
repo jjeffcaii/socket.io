@@ -26,15 +26,11 @@ import (
 	"net/http"
 	"sync"
 
-	"log"
-
 	"github.com/jjeffcaii/engine.io"
 )
 
 type loggerGroup struct {
-	info *log.Logger
-	warn *log.Logger
-	err  *log.Logger
+	info, warn, err func(format string, v ...interface{})
 }
 
 type implServer struct {
@@ -89,7 +85,7 @@ func (p *implServer) loadNamespace(nsp string) (*implNamespace, bool) {
 	return n, ok
 }
 
-func newServer(engine eio.Engine, l1 *log.Logger, l2 *log.Logger, l3 *log.Logger) *implServer {
+func newServer(engine eio.Engine, l1, l2, l3 func(format string, v ...interface{})) *implServer {
 	serv := &implServer{
 		engine:     engine,
 		namespaces: make(map[string]*implNamespace),

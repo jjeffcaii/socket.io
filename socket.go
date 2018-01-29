@@ -144,7 +144,7 @@ func (p *implSocket) accept(evt *parser.MEvent) {
 	handlers, ok := p.eventHandlers[evt.Event]
 	if !ok {
 		if p.nsp.server.logger.warn != nil {
-			p.nsp.server.logger.warn.Println("no such event which name is", evt.Event)
+			p.nsp.server.logger.warn("no such event '%s'\n", evt.Event)
 		}
 		return
 	}
@@ -156,13 +156,12 @@ func (p *implSocket) accept(evt *parser.MEvent) {
 }
 
 func newHandshake(req *http.Request) *Handshake {
-	handshake := Handshake{
+	return &Handshake{
 		Headers: req.Header,
 		Query:   req.URL.Query(),
 		URL:     req.URL.Path,
 		Address: req.RemoteAddr,
 	}
-	return &handshake
 }
 
 func newSocket(server *implServer, conn eio.Socket) *implSocket {
@@ -189,7 +188,7 @@ func newSocket(server *implServer, conn eio.Socket) *implSocket {
 			if !ok {
 				conn.Close()
 				if server.logger.err != nil {
-					server.logger.err.Printf("no such namespace %s\n", packet.Namespace)
+					server.logger.err("no such namespace %s\n", packet.Namespace)
 				}
 				return
 			}
@@ -198,7 +197,7 @@ func newSocket(server *implServer, conn eio.Socket) *implSocket {
 			if err := conn.Send(data); err != nil {
 				conn.Close()
 				if server.logger.err != nil {
-					server.logger.err.Println("send connect response failed:", err)
+					server.logger.err("send connect response failed: %s\n", err)
 				}
 			}
 			break
@@ -210,7 +209,7 @@ func newSocket(server *implServer, conn eio.Socket) *implSocket {
 			if model, err := packet.ToModel(); err != nil {
 				conn.Close()
 				if server.logger.err != nil {
-					server.logger.err.Println(err)
+					server.logger.err("%s\n", err)
 				}
 			} else {
 				socket.accept(model.(*parser.MEvent))

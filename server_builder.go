@@ -22,18 +22,16 @@
 package sio
 
 import (
-	"log"
 	"net/http"
+	"time"
 
 	"github.com/jjeffcaii/engine.io"
 )
 
 // ServerBuilder can be used to build a new server.
 type ServerBuilder struct {
-	linfo         *log.Logger
-	lwarn         *log.Logger
-	lerr          *log.Logger
-	engineBuilder *eio.EngineBuilder
+	linfo, lwarn, lerr func(format string, v ...interface{})
+	engineBuilder      *eio.EngineBuilder
 }
 
 // Build returns a new server.
@@ -42,27 +40,27 @@ func (p *ServerBuilder) Build() Server {
 }
 
 // ForceCheckProtocol force protocol check for query param EIO.
-func (p *ServerBuilder) ForceCheckProtocol() *ServerBuilder{
+func (p *ServerBuilder) ForceCheckProtocol() *ServerBuilder {
 	p.engineBuilder.ForceCheckProtocol()
 	return p
 }
 
 // SetLoggerInfo set logger for INFO
-func (p *ServerBuilder) SetLoggerInfo(logger *log.Logger) *ServerBuilder {
+func (p *ServerBuilder) SetLoggerInfo(logger func(format string, v ...interface{})) *ServerBuilder {
 	p.engineBuilder.SetLoggerInfo(logger)
 	p.linfo = logger
 	return p
 }
 
 // SetLoggerWarn set logger for WARN
-func (p *ServerBuilder) SetLoggerWarn(logger *log.Logger) *ServerBuilder {
+func (p *ServerBuilder) SetLoggerWarn(logger func(format string, v ...interface{})) *ServerBuilder {
 	p.engineBuilder.SetLoggerWarn(logger)
 	p.lwarn = logger
 	return p
 }
 
 // SetLoggerError set logger for ERROR
-func (p *ServerBuilder) SetLoggerError(logger *log.Logger) *ServerBuilder {
+func (p *ServerBuilder) SetLoggerError(logger func(format string, v ...interface{})) *ServerBuilder {
 	p.engineBuilder.SetLoggerError(logger)
 	p.lerr = logger
 	return p
@@ -118,14 +116,14 @@ func (p *ServerBuilder) SetAllowUpgrades(enable bool) *ServerBuilder {
 	return p
 }
 
-// SetPingInterval define ping time interval in millseconds for client.
-func (p *ServerBuilder) SetPingInterval(interval uint32) *ServerBuilder {
+// SetPingInterval define ping time interval in millseconds for client. (default is 60 seconds)
+func (p *ServerBuilder) SetPingInterval(interval time.Duration) *ServerBuilder {
 	p.engineBuilder.SetPingInterval(interval)
 	return p
 }
 
-// SetPingTimeout define ping timeout in millseconds for client.
-func (p *ServerBuilder) SetPingTimeout(timeout uint32) *ServerBuilder {
+// SetPingTimeout define ping timeout in millseconds for client. (default is 25 seconds)
+func (p *ServerBuilder) SetPingTimeout(timeout time.Duration) *ServerBuilder {
 	p.engineBuilder.SetPingTimeout(timeout)
 	return p
 }
