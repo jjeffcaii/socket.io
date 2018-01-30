@@ -27,6 +27,8 @@ func main() {
 			fmt.Println("[news]:", msg)
 		})
 		socket.Emit("hello", "你好，世界！")
+		socket.Join("chats")
+		socket.To("chats").Emit("hello", "Hello World!")
 	})
 	http.HandleFunc(sio.DefaultPath, server.Router())
 	log.Fatalln(http.ListenAndServe(":3000", nil))
