@@ -43,7 +43,10 @@ type Namespace interface {
 	OnConnect(callback func(socket Socket))
 	// GetSockets returns all of sockets in current namespace.
 	GetSockets() Sockets
+	// To targets a room when emitting.
 	To(room string) Emitter
+	// In targets a room when emitting.
+	In(room string) Emitter
 }
 
 // Server is socket.io server.
@@ -57,12 +60,10 @@ type Server interface {
 	GetSockets() Sockets
 }
 
+// Emitter emits event to sockets.
 type Emitter interface {
+	// Emit emits an event to the socket identified by the string name.
 	Emit(event string, first interface{}, others ...interface{}) error
-}
-
-type InRoom interface {
-	On(event string, callback func(msg Message)) error
 }
 
 // Socket is the fundamental class for interacting with browser clients.
@@ -74,7 +75,6 @@ type Socket interface {
 	Namespace() Namespace
 	// Handshake returns Handshake of current socket.
 	Handshake() *Handshake
-	Boardcast()
 	// Emit emits an event to the socket identified by the string name.
 	Emit(event string, first interface{}, others ...interface{}) error
 	// On register a handler of event identified by the string event.
@@ -94,7 +94,7 @@ type Socket interface {
 	// Leave leaves a room.
 	Leave(room string) Socket
 	// Leave leaves all the rooms that we've joined.
-	LeaveAll() error
+	LeaveAll() Socket
 }
 
 // Handshake is the object used when negociating the handshake.

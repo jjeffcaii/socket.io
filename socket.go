@@ -59,12 +59,20 @@ type implSocket struct {
 	handshake     *Handshake
 }
 
-func (p *implSocket) To(room string) ToRoom {
-	panic("implement me")
+func (p *implSocket) To(room string) Emitter {
+	socket, ok := p.nsp.getSocket(room)
+	if ok {
+		return socket
+	}
+	return p.nsp.ensureRoom(room).broadcast(p.ID())
 }
 
-func (p *implSocket) In(room string) InRoom {
-	panic("implement me")
+func (p *implSocket) In(room string) Emitter {
+	socket, ok := p.nsp.getSocket(room)
+	if ok {
+		return socket
+	}
+	return p.nsp.ensureRoom(room).broadcast()
 }
 
 func (p *implSocket) Join(room string) Socket {
@@ -73,12 +81,19 @@ func (p *implSocket) Join(room string) Socket {
 }
 
 func (p *implSocket) Leave(room string) Socket {
-	p.nsp.ensureRoom(room).leave(p)
+	found, ok := p.nsp.rooms.Load(room)
+	if ok {
+		found.(*implRoom).leave(p)
+	}
 	return p
 }
 
-func (p *implSocket) LeaveAll() error {
-	panic("implement me")
+func (p *implSocket) LeaveAll() Socket {
+	p.nsp.rooms.Range(func(key, value interface{}) bool {
+		value.(*implRoom).leave(p)
+		return true
+	})
+	return p
 }
 
 func (p *implSocket) Handshake() *Handshake {
@@ -91,7 +106,7 @@ func (p *implSocket) Namespace() Namespace {
 
 func (p *implSocket) Emit(event string, first interface{}, others ...interface{}) error {
 	if p.nsp == nil {
-		return fmt.Errorf("socket is closing")
+		return fmt.Errorf("socket %s is closing", p.ID())
 	}
 	body := []interface{}{first}
 	if len(others) > 0 {
@@ -165,18 +180,12 @@ func newHandshake(req *http.Request) *Handshake {
 	}
 }
 
-func newSocket(server *implServer, conn eio.Socket) *implSocket {
+func handleSocket(server *implServer, conn eio.Socket) *implSocket {
 	socket := &implSocket{
 		eventHandlers: make(eventHandlers),
 		conn:          conn,
 		handshake:     newHandshake(conn.Transport().GetRequest()),
 	}
-	conn.OnClose(func(_ string) {
-		if socket.nsp != nil {
-			socket.nsp.appendSocket(socket)
-			socket.nsp = nil
-		}
-	})
 	conn.OnMessage(func(data []byte) {
 		packet, err := parser.Decode(data)
 		if err != nil {
@@ -194,7 +203,7 @@ func newSocket(server *implServer, conn eio.Socket) *implSocket {
 				return
 			}
 			socket.nsp = nsp
-			nsp.removeSocket(socket)
+			nsp.addSocket(socket)
 			if err := conn.Send(data); err != nil {
 				conn.Close()
 				if server.logger.err != nil {
@@ -222,7 +231,14 @@ func newSocket(server *implServer, conn eio.Socket) *implSocket {
 	})
 	// add into default namespace.
 	socket.nsp = server.Of(defaultNamespace).(*implNamespace)
-	socket.nsp.removeSocket(socket)
+	socket.nsp.addSocket(socket)
+	conn.OnClose(func(_ string) {
+		if socket.nsp != nil {
+			socket.nsp.removeSocket(socket)
+			socket.nsp = nil
+		}
+	})
+	// send init data.
 	if err := conn.Send(initData); err != nil {
 		conn.Close()
 	}

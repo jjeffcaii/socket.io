@@ -97,7 +97,7 @@ func newServer(engine eio.Engine, l1, l2, l3 func(format string, v ...interface{
 		},
 	}
 	engine.OnConnect(func(rawSocket eio.Socket) {
-		newSocket(serv, rawSocket)
+		handleSocket(serv, rawSocket)
 	})
 	return serv
 }

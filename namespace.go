@@ -37,6 +37,18 @@ type implNamespace struct {
 	rooms        *sync.Map // key=room_name,value=implRoom
 }
 
+func (p *implNamespace) To(roomName string) Emitter {
+	return p.In(roomName)
+}
+
+func (p *implNamespace) In(roomName string) Emitter {
+	socket, ok := p.getSocket(roomName)
+	if ok {
+		return socket
+	}
+	return p.ensureRoom(roomName).broadcast()
+}
+
 func (p *implNamespace) ID() string {
 	return p.name
 }
@@ -54,6 +66,14 @@ func (p *implNamespace) GetSockets() Sockets {
 	return ret
 }
 
+func (p *implNamespace) getSocket(sid string) (*implSocket, bool) {
+	v, ok := p.sockets.Load(sid)
+	if !ok {
+		return nil, false
+	}
+	return v.(*implSocket), true
+}
+
 func (p *implNamespace) ensureRoom(roomName string) *implRoom {
 	var room *implRoom
 	if found, ok := p.rooms.Load(roomName); !ok {
@@ -65,12 +85,17 @@ func (p *implNamespace) ensureRoom(roomName string) *implRoom {
 	return room
 }
 
-func (p *implNamespace) appendSocket(socket *implSocket) error {
+func (p *implNamespace) removeSocket(socket *implSocket) error {
 	p.sockets.Delete(socket.ID())
+	p.rooms.Range(func(key, value interface{}) bool {
+		room := value.(*implRoom)
+		room.members.Delete(socket.ID())
+		return true
+	})
 	return nil
 }
 
-func (p *implNamespace) removeSocket(socket *implSocket) (err error) {
+func (p *implNamespace) addSocket(socket *implSocket) (err error) {
 	defer func() {
 		e := recover()
 		if e == nil {
