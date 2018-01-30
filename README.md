@@ -35,3 +35,7 @@ func main() {
 }
 
 ```
+
+## Documents
+
+Please see [https://godoc.org/github.com/jjeffcaii/socket.io](https://godoc.org/github.com/jjeffcaii/socket.io).
