@@ -57,6 +57,11 @@ type implSocket struct {
 	conn          eio.Socket
 	eventHandlers eventHandlers
 	handshake     *Handshake
+	properties    map[string]interface{}
+}
+
+func (p *implSocket) GetProperties() map[string]interface{} {
+	return p.properties
 }
 
 func (p *implSocket) To(room string) Emitter {
@@ -185,6 +190,7 @@ func handleSocket(server *implServer, conn eio.Socket) *implSocket {
 		eventHandlers: make(eventHandlers),
 		conn:          conn,
 		handshake:     newHandshake(conn.Transport().GetRequest()),
+		properties:    make(map[string]interface{}),
 	}
 	conn.OnMessage(func(data []byte) {
 		packet, err := parser.Decode(data)

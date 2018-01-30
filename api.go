@@ -95,6 +95,8 @@ type Socket interface {
 	Leave(room string) Socket
 	// Leave leaves all the rooms that we've joined.
 	LeaveAll() Socket
+	// GetProperties returns custom property map for current socket.
+	GetProperties() map[string]interface{}
 }
 
 // Handshake is the object used when negociating the handshake.
