@@ -2,12 +2,11 @@
 //
 // Basic Example:
 //
-//	flag.Parse()
 //	var server = sio.NewBuilder().Build()
 //	var nsp = server.Of("/")
 //	nsp.OnConnect(func(socket sio.Socket) {
 //		socket.On("news", func(msg sio.Message) {
-//			fmt.Println("[news]:", msg)
+//			fmt.Println("[news]:", msg.Any())
 //		})
 //		socket.Emit("hello", "你好，世界！")
 //	})
