@@ -22,7 +22,7 @@ func TestEcho(t *testing.T) {
 	nsp := server.Of("/")
 	nsp.OnConnect(func(socket sio.Socket) {
 		socket.On("test", func(msg sio.Message) {
-			fmt.Printf("[test] <= %v\n", msg)
+			fmt.Printf("[test] <= %v\n", msg.Any())
 			socket.Emit("test", "你好，客户端！")
 		})
 		socket.OnClose(func(reason string) {

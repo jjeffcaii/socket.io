@@ -73,7 +73,7 @@ type Packet struct {
 func (p *Packet) ToModel() (Model, error) {
 	switch p.Type {
 	default:
-		panic("todo")
+		return nil, fmt.Errorf("invalid packet type %d", p.Type)
 	case CONNECT:
 		mc := &MConnect{
 			Namespace: p.Namespace,
@@ -85,7 +85,7 @@ func (p *Packet) ToModel() (Model, error) {
 		}
 		return md, nil
 	case EVENT:
-		events := make([]interface{}, 0)
+		events := make([]json.RawMessage, 0)
 		if err := json.Unmarshal(p.Data, &events); err != nil {
 			return nil, err
 		}
@@ -93,12 +93,13 @@ func (p *Packet) ToModel() (Model, error) {
 			ID:        p.ID,
 			Namespace: p.Namespace,
 		}
-		if evt, ok := events[0].(string); !ok {
-			return nil, errors.New("parse event name failed")
-		} else {
-			me.Event = evt
+		if err := json.Unmarshal(events[0], &me.Event); err != nil {
+			return nil, err
 		}
-		me.Data = events[1:]
+		me.Data = make([]interface{}, 0)
+		for _, bs := range events[1:] {
+			me.Data = append(me.Data, []byte(bs))
+		}
 		return me, nil
 	case ACK:
 		ma := &MAck{
@@ -196,5 +197,6 @@ func writeToString(writer io.Writer, packet *Packet) error {
 }
 
 func writeToBinary(writer io.Writer, packet *Packet) error {
-	panic("TODO")
+	// TODO: write data as binary
+	panic("no implements")
 }

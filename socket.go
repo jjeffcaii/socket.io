@@ -171,7 +171,7 @@ func (p *implSocket) accept(evt *parser.MEvent) {
 	}
 	for _, it := range evt.Data {
 		for _, fn := range handlers {
-			fn(it)
+			fn(it.([]byte))
 		}
 	}
 }

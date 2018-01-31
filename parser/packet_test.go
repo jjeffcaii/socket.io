@@ -29,7 +29,7 @@ import (
 )
 
 func TestDecode(t *testing.T) {
-	input := []byte(`42/chat,["say",{"to":{"id":"bar","type":0},"content":{"media":0,"body":"fuck"}}]`)
+	input := []byte(`2/chat,["say",{"to":{"id":"bar","type":0},"content":{"media":0,"body":"fuck"}}]`)
 	packet, err := Decode(input)
 	if err != nil {
 		t.Error(err)
@@ -38,14 +38,13 @@ func TestDecode(t *testing.T) {
 	fmt.Println("namespace:", packet.Namespace)
 	fmt.Println("data:", string(packet.Data))
 
-	/*if m, err2 := packet.ToModel(); err2 != nil {
+	if m, err2 := packet.ToModel(); err2 != nil {
 		fmt.Println(err2)
 		return
 	} else {
 		fmt.Printf("model: %+v", m)
-	}*/
-
-	input = []byte("0/chat")
+	}
+	/*input = []byte("0/chat")
 
 	packet, err = Decode(input)
 	if err != nil {
@@ -53,7 +52,7 @@ func TestDecode(t *testing.T) {
 	}
 	fmt.Println("type:", packet.Type)
 	fmt.Println("namespace:", packet.Namespace)
-	fmt.Println("data:", string(packet.Data))
+	fmt.Println("data:", string(packet.Data))*/
 }
 
 func TestJSONARR(t *testing.T) {

@@ -21,30 +21,10 @@
 // SOFTWARE.
 package sio
 
+import "regexp"
+
+var regexNsp = regexp.MustCompile("/[0-9a-zA-Z_-]*")
+
 func isValidNamespace(nsp string) bool {
-	// TODO: validate namespace name
-	return true
-}
-
-type hashSet map[interface{}]bool
-
-func (p hashSet) add(item interface{}) bool {
-	_, ok := p[item]
-	if !ok {
-		p[item] = true
-	}
-	return !ok
-}
-
-func (p hashSet) remove(item interface{}) {
-	delete(p, item)
-}
-
-func (p hashSet) has(item interface{}) bool {
-	_, ok := p[item]
-	return ok
-}
-
-func newHashSet() hashSet {
-	return make(map[interface{}]bool)
+	return regexNsp.MatchString(nsp)
 }

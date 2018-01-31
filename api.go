@@ -22,6 +22,8 @@
 package sio
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/url"
 )
@@ -33,7 +35,30 @@ const DefaultPath = "/socket.io/"
 type Sockets map[string]Socket
 
 // Message is an alias of event message.
-type Message interface{}
+type Message []byte
+
+// Parse parse bytes as json.
+func (s Message) Parse(dest interface{}) error {
+	return json.Unmarshal(s, dest)
+}
+
+// Any parse bytes to anything.
+func (s Message) Any() interface{} {
+	foo := make([]interface{}, 0)
+	bf := &bytes.Buffer{}
+	bf.WriteByte('[')
+	bf.Write(s)
+	bf.WriteByte(']')
+	err := json.Unmarshal(bf.Bytes(), &foo)
+	if err != nil {
+		return nil
+	}
+	return foo[0]
+}
+
+func (s Message) String() string {
+	return string(s)
+}
 
 // Namespace represents a pool of sockets connected under a given scope identified by a pathname (eg: /chat).
 type Namespace interface {

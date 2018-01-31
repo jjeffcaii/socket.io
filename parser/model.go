@@ -90,9 +90,10 @@ type MEvent struct {
 }
 
 func (p *MEvent) ToPacket() (*Packet, error) {
-	foo := []interface{}{p.Event}
-	foo = append(foo, p.Data...)
-	bs, err := json.Marshal(foo)
+	inputs := make([]interface{}, 0)
+	inputs = append(inputs, p.Event)
+	inputs = append(inputs, p.Data...)
+	bs, err := json.Marshal(inputs)
 	if err != nil {
 		return nil, err
 	}
