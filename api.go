@@ -110,9 +110,9 @@ type Socket interface {
 	OnClose(callback func(reason string)) error
 	// Close close current socket.
 	Close()
-	// To return an emitter to all members in room exclude yourself.
+	// To return an emitter to all room members exclude yourself or another socket.
 	To(room string) Emitter
-	// In return an emitter to all members in room.
+	// In return an emitter to all room members or another socket.
 	In(room string) Emitter
 	// Join joins a room.
 	Join(room string) Socket
