@@ -10,7 +10,6 @@ Unofficial server-side [Socket.IO](https://socket.io) in Golang.
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,7 +18,6 @@ import (
 )
 
 func main() {
-	flag.Parse()
 	server := sio.NewBuilder().Build()
 	nsp := server.Of("/")
 	nsp.OnConnect(func(socket sio.Socket) {
