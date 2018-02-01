@@ -1,4 +1,4 @@
-# Socket.IO (WARNING: STILL WORKING!!!!)
+# Socket.IO
 
 [![Build Status](https://travis-ci.org/jjeffcaii/socket.io.svg?branch=master)](https://travis-ci.org/jjeffcaii/socket.io)
 
