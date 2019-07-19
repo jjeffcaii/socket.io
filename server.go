@@ -64,8 +64,8 @@ func (p *implServer) loadNamespace(nsp string) (*implNamespace, bool) {
 	return n, ok
 }
 
-func newServer(engine eio.Engine, l1, l2, l3 func(format string, v ...interface{})) *implServer {
-	serv := &implServer{
+func newServer(engine eio.Engine, l1, l2, l3 func(format string, v ...interface{})) (s *implServer) {
+	s = &implServer{
 		engine:     engine,
 		namespaces: make(map[string]*implNamespace),
 		locker:     new(sync.RWMutex),
@@ -76,7 +76,8 @@ func newServer(engine eio.Engine, l1, l2, l3 func(format string, v ...interface{
 		},
 	}
 	engine.OnConnect(func(rawSocket eio.Socket) {
-		handleSocket(serv, rawSocket)
+		// TODO: temporary fix
+		go handleSocket(s, rawSocket)
 	})
-	return serv
+	return
 }

@@ -1,0 +1,4 @@
+github.com/gorilla/websocket v1.2.0 h1:VJtLvh6VQym50czpZzx07z/kw9EgAxI3x1ZB8taTMQQ=
+github.com/gorilla/websocket v1.2.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
+github.com/jjeffcaii/engine.io v0.8.2 h1:vRLwUsFIaT4+zdA3HQ03Pjh5qxv+0rMmDp5lenmvbFU=
+github.com/jjeffcaii/engine.io v0.8.2/go.mod h1:u4BAsMWd+BwuMO5PeLMVLwO5TXA8LD/kWB1mnJ4arm4=

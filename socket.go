@@ -1,11 +1,12 @@
 package sio
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/jjeffcaii/engine.io"
-	"github.com/jjeffcaii/socket.io/parser"
+	"github.com/jjeffcaii/socket.io/internal/parser"
 )
 
 var initData = "0"
@@ -156,6 +157,9 @@ func (p *implSocket) accept(evt *parser.MEvent) {
 }
 
 func newHandshake(req *http.Request) *Handshake {
+	if req == nil {
+		panic(errors.New("request is nil"))
+	}
 	return &Handshake{
 		Headers: req.Header,
 		Query:   req.URL.Query(),
