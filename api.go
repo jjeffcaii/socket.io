@@ -101,6 +101,8 @@ type Socket interface {
 	LeaveAll() Socket
 	// GetProperties returns custom property map for current socket.
 	GetProperties() map[string]interface{}
+	// SetProperties set a custom property
+	SetProperties(k string, v interface{})
 }
 
 // Handshake is the object used when negociating the handshake.
