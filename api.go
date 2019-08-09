@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"sync"
 )
 
 // DefaultPath '/socket.io/' is the default http handler path.
@@ -99,10 +100,8 @@ type Socket interface {
 	Leave(room string) Socket
 	// Leave leaves all the rooms that we've joined.
 	LeaveAll() Socket
-	// GetProperties returns custom property map for current socket.
-	GetProperties() map[string]interface{}
-	// SetProperties set a custom property
-	SetProperties(k string, v interface{})
+	// Properties returns properties map for current socket.
+	Properties() *sync.Map
 }
 
 // Handshake is the object used when negociating the handshake.

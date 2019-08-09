@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync"
 
 	eio "github.com/jjeffcaii/engine.io"
 	"github.com/jjeffcaii/socket.io/internal/parser"
@@ -11,19 +12,29 @@ import (
 
 var initData = "0"
 
-type eventHandlers map[string][]func(Message)
-
-func (s eventHandlers) register(event string, handler func(Message)) error {
-	if exists, ok := s[event]; ok {
-		s[event] = append(exists, handler)
-	} else {
-		s[event] = []func(Message){handler}
-	}
-	return nil
+type eventHandlers struct {
+	l sync.RWMutex
+	m map[string][]func(Message)
 }
 
-func (s eventHandlers) exec(event string, msg Message) {
-	handlers, ok := s[event]
+func (s *eventHandlers) register(event string, handler func(Message)) (err error) {
+	s.l.Lock()
+	s.m[event] = append(s.m[event], handler)
+	s.l.Unlock()
+	return
+}
+
+func (s *eventHandlers) load(event string) (handlers []func(Message), ok bool) {
+	s.l.RLock()
+	handlers, ok = s.m[event]
+	s.l.RUnlock()
+	return
+}
+
+func (s *eventHandlers) exec(event string, msg Message) {
+	s.l.RLock()
+	defer s.l.RUnlock()
+	handlers, ok := s.m[event]
 	if !ok {
 		return
 	}
@@ -35,17 +46,13 @@ func (s eventHandlers) exec(event string, msg Message) {
 type implSocket struct {
 	nsp           *implNamespace
 	conn          eio.Socket
-	eventHandlers eventHandlers
+	eventHandlers *eventHandlers
 	handshake     *Handshake
-	properties    map[string]interface{}
+	properties    *sync.Map
 }
 
-func (p *implSocket) GetProperties() map[string]interface{} {
+func (p *implSocket) Properties() *sync.Map {
 	return p.properties
-}
-
-func (p *implSocket) SetProperties(k string, v interface{}) {
-	p.properties[k] = v
 }
 
 func (p *implSocket) To(room string) Emitter {
@@ -146,7 +153,7 @@ func (p *implSocket) ID() string {
 }
 
 func (p *implSocket) accept(evt *parser.MEvent) {
-	handlers, ok := p.eventHandlers[evt.Event]
+	handlers, ok := p.eventHandlers.load(evt.Event)
 	if !ok {
 		if p.nsp.server.logger.warn != nil {
 			p.nsp.server.logger.warn("no such event '%s'\n", evt.Event)
@@ -172,12 +179,18 @@ func newHandshake(req *http.Request) *Handshake {
 	}
 }
 
+func newEventHandlers() *eventHandlers {
+	return &eventHandlers{
+		m: make(map[string][]func(Message)),
+	}
+}
+
 func handleSocket(server *implServer, conn eio.Socket) *implSocket {
 	socket := &implSocket{
-		eventHandlers: make(eventHandlers),
+		eventHandlers: newEventHandlers(),
 		conn:          conn,
 		handshake:     newHandshake(conn.Transport().GetRequest()),
-		properties:    make(map[string]interface{}),
+		properties:    &sync.Map{},
 	}
 	conn.OnMessage(func(data []byte) {
 		packet, err := parser.Decode(data)

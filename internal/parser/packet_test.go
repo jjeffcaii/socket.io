@@ -1,10 +1,9 @@
 package parser
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
-
-	"encoding/json"
 )
 
 func TestDecode(t *testing.T) {
